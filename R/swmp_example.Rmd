@@ -1,0 +1,93 @@
+---
+title: "SWMP Heat Index Example"
+author: "Dave Eslinger"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_libraries}
+suppressPackageStartupMessages({
+  library(SWMPrExtension)
+  library(tidyverse)
+})
+```
+
+## SWMP Heat Index Example
+
+Heat index is a complicated combination of temperature and humidity.
+
+```{r heat_index_funciton}
+heatindexF <- function(TF,RH) {
+  # Constants ----
+  C1 <- -42.379
+  C2 <- 2.04901523
+  C3 <- 10.14333127
+  C4 <- -0.22475541
+  C5 <- -6.83783E-3
+  C6 <- -5.481717E-2
+  C7 <- 1.22874E-3
+  C8 <- 8.5282E-4
+  C9 <- -1.99E-6
+  
+  ifelse(TF<80,
+         hiF <- 0.5 * (TF + 61.0 +
+                         ((TF-68.0)^1.2) +
+                         (RH * 0.094)),
+         {
+           hiF <- C1 + (C2 * TF) + (C3 * RH) + 
+             (C4 * TF * RH) + (C5 * TF^2) + (C6 * RH^2) +
+             (C7 * TF^2 * RH) + (C8 * TF * RH^2) +
+             (C9 * TF^2 * RH^2)
+           ifelse(RH > 85 & TF > 80 & TF < 87,
+                  adj <- ((RH-85)/10) * ((87-TF)/5),
+                  ifelse(RH < 13 & TF > 80 & TF < 112,
+                         adj <- -((13-RH)/4) * sqrt((17 - abs(TF - 95))/17),
+                         adj <- 0))
+           hiF <- adj # hiF + adj
+         })
+  return(hiF)
+}
+
+```
+
+
+```{r heat_index_funcitonC}
+heatindexC <- function(df, temp, hum) {
+  # Constants ----
+  C1 <- -42.379
+  C2 <- 2.04901523
+  C3 <- 10.14333127
+  C4 <- -0.22475541
+  C5 <- -6.83783E-3
+  C6 <- -5.481717E-2
+  C7 <- 1.22874E-3
+  C8 <- 8.5282E-4
+  C9 <- -1.99E-6
+  
+  
+  hiF <- C1 + (C2 * TF) + (C3 * RH) + 
+    (C4 * TF * RH) + (C5 * TF^2) + (C6 * RH^2) +
+    (C7 * TF^2 * RH) + (C8 * TF * RH^2) +
+    (C9 * TF^2 * RH^2)
+  
+  return(hiF)
+}
+
+```
+
+
+
+```{r SWMP_example}
+
+data(apaebmet)
+dat <- qaqc(apaebmet, qaqc_keep = c('0', '3', '5'))
+dat2 <- dat %>% 
+  mutate(hindxF = heatindexF((atemp*9/5)+32, rh))
+
+hindx <- heatindexF((dat$atemp*9/5)+32, dat$rh)
+
+```
